@@ -1,0 +1,196 @@
+---
+title: "Antijoin"
+author: "Yongyan"
+date: "6/18/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+#package install
+
+```{r install}
+if (!require("plyr")) {
+  install.packages("plyr", dependencies = TRUE)
+  library(plyr)
+}
+if (!require("dplyr")) {
+  install.packages("dplyr", dependencies = TRUE)
+  library(dplyr)
+}
+#drop_na
+if (!require("tidyr")) {
+  install.packages("tidyr", dependencies = TRUE)
+  library(tidyr)
+}
+#%LIKE%
+if (!require("data.table")) {
+  install.packages("data.table", dependencies = TRUE)
+  library(data.table)
+}
+
+if (!require("lubridate")) {
+  install.packages("lubridate", dependencies = TRUE)
+  library(lubridate)
+}
+
+```
+
+# Load in and set new variables
+
+```{r read in}
+HerdDataPyspark<-fread('./Data/HerdDataRaw/HerdDataPyspark.csv')
+glimpse(HerdDataPyspark)
+```
+
+```{r check NumberOfAnimal }
+summary(HerdDataPyspark$NumberOfAnimals)
+n_distinct(HerdDataPyspark$HerdIdentifier)
+```
+
+```{r change date from int to date form}
+HerdDataPyspark$Date<-ymd(HerdDataPyspark$Date)
+```
+
+
+```{r calculate record per herd per year}
+HerdDataPyspark<-HerdDataPyspark%>%
+  group_by(HerdIdentifier,TestYear)%>%
+  mutate(Record=n_distinct(Date))
+
+glimpse(HerdDataPyspark)
+
+```
+
+
+
+```{r record>6 then drop duplicated then calculate Diff}
+df1<-HerdDataPyspark%>%
+  filter(Record>6)%>%
+  distinct(HerdIdentifier,TestYear,.keep_all = T)%>%
+  select(HerdIdentifier,TestYear,Record)%>%
+  group_by(HerdIdentifier)%>%
+  mutate(YearDiffA=lead(TestYear,1,order_by = TestYear)-TestYear,
+         YearDiffB=TestYear-lag(TestYear,1,order_by = TestYear),
+         RecordDiffB=Record-lag(Record,1,order_by = TestYear))%>%
+  arrange(HerdIdentifier,TestYear)
+```
+
+
+
+```{r join together}
+HerdDataPyspark_filtered<-HerdDataPyspark%>%
+  inner_join(df1,by=c('HerdIdentifier','TestYear','Record'))%>%
+  arrange(HerdIdentifier,TestYear)
+```
+
+```{r}
+n_distinct(HerdDataPyspark_filtered$HerdIdentifier)
+nrow(HerdDataPyspark_filtered)
+```
+
+```{r filter yeardiff}
+HerdDataPyspark_filtered<-HerdDataPyspark_filtered%>%
+  filter(YearDiffA==1|YearDiffB==1)
+  
+```
+
+```{r check how many herds are still in there}
+n_distinct(HerdDataPyspark_filtered$HerdIdentifier)
+nrow(HerdDataPyspark_filtered)
+```
+
+
+# keep High quality herd. CV 0-99% (milk production, animals)
+
+```{r  build CV function}
+CV<-function(x) {
+  100*sd(x)/mean(x)
+}
+```
+
+
+```{r set up cv}
+HerdDataPyspark_filtered<-HerdDataPyspark_filtered%>%
+  group_by(HerdIdentifier)%>%
+  mutate(AnimalCV=CV(NumberOfAnimals),MilkCV=CV(AverageMilkKg))%>%
+  ungroup()
+
+```
+
+
+```{r check cv}
+summary(HerdDataPyspark_filtered$AnimalCV)
+summary(HerdDataPyspark_filtered$MilkCV)
+```
+
+```{r}
+quantile(HerdDataPyspark_filtered$AnimalCV,0.01)
+quantile(HerdDataPyspark_filtered$AnimalCV,0.99)
+quantile(HerdDataPyspark_filtered$MilkCV,0.01)
+quantile(HerdDataPyspark_filtered$MilkCV,0.99)
+```
+      1% 
+5.324637 
+     99% 
+43.14389 
+      1% 
+4.944714 
+     99% 
+24.48885 
+
+different from pyspark
+
+```{r remove extrem high cv}
+HerdDataPyspark_filtered<-HerdDataPyspark_filtered%>%
+  group_by(HerdIdentifier)%>%
+  mutate(AnimalCV=CV(NumberOfAnimals),MilkCV=CV(AverageMilkKg))%>%
+  ungroup()%>%
+  filter(AnimalCV<quantile(AnimalCV,0.99),
+         MilkCV<quantile(MilkCV,0.99))
+
+```
+
+
+```{r check cv}
+summary(HerdDataPyspark_filtered$AnimalCV)
+summary(HerdDataPyspark_filtered$MilkCV)
+```
+
+```{r check how many herds are still in there}
+n_distinct(HerdDataPyspark_filtered$HerdIdentifier)
+nrow(HerdDataPyspark_filtered)
+```
+
+
+
+# get the name of qualified herd
+
+```{r}
+glimpse(HerdDataPyspark_filtered)
+
+QualifiedHerd<-HerdDataPyspark_filtered%>%
+  distinct(HerdIdentifier,TestYear)%>%
+  select(HerdIdentifier,TestYear)
+```
+
+
+```{r save it as RData}
+save(HerdDataPyspark_filtered, file = "./Data/HerdDataRaw/HerdDataPyspark_filtered.RData")
+rm(AllDataRaw,df1,HerdDataPyspark,HerdDataPyspark_filtered)
+```
+
+
+
+# if the error'“cannot allocate vector of size of ..MB' appears
+```{r }
+gc()
+memory.limit()
+memory.size(T)
+memory.size(F)
+memory.limit(50000)
+object.size()
+rm(list = ls())
+
+
+```
