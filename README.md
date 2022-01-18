@@ -60,3 +60,14 @@ The total number of cows increased from 2008 to 2016, then steadily decreased th
 <img src=https://github.com/Bovi-analytics/SupplementalFiles-YongyanChen/blob/ceb9a1232132edcc0fc814c3877b941be1d6ec1e/T7%20Herd%20TimeToPeak%20for%20P2%20within%20year%20between%20herds.png width=85% height=85%>
 
 
+# Codes
+
+pyspark
+
+[1. Data editing before fitting](https://github.com/Bovi-analytics/SupplementalFiles-YongyanChen/blob/26ef0beea69360e0a2ad4e56921859b082218424/1_Data_editing_before_fitting.ipynb)
+
+[2_Data_editing_after_fitting](https://github.com/Bovi-analytics/SupplementalFiles-YongyanChen/blob/26ef0beea69360e0a2ad4e56921859b082218424/2_Data_editing_after_fitting.ipynb)
+
+[3_Herd_summary](https://github.com/Bovi-analytics/SupplementalFiles-YongyanChen/blob/26ef0beea69360e0a2ad4e56921859b082218424/3_Herd_summary.ipynb)
+
+[4_Descriptive_analysis](https://github.com/Bovi-analytics/SupplementalFiles-YongyanChen/blob/26ef0beea69360e0a2ad4e56921859b082218424/4_Descriptive_analysis.ipynb)
