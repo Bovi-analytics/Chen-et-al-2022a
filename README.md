@@ -1,5 +1,4 @@
-# SupplementalFiles-YongyanChen
-
+# Chen-et-al-2022a
 For Livestock Science 2022
 
 
