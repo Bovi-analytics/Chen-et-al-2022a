@@ -1,4 +1,6 @@
 # Chen-et-al-2022a
+How to develop annual herd level lactation curve
+
 For Livestock Science 2022
 
 
